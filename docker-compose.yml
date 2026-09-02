@@ -1,0 +1,70 @@
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ats_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ats_password}
+      POSTGRES_DB: ${POSTGRES_DB:-ats_db}
+    ports:
+      - "${POSTGRES_PORT:-5435}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -h localhost -p 5432"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend-network
+
+  adminer:
+    image: adminer:latest
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    ports:
+      - "${ADMINER_PORT:-8080}:8080"
+    networks:
+      - backend-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - backend-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        API_BACKEND_URL: http://backend:8000
+    restart: unless-stopped
+    
+    environment:
+      - API_BACKEND_URL=http://backend:8000
+      - NEXT_PUBLIC_API_URL=http://backend:8000
+      - NEXT_PUBLIC_API_BASE_URL=/api/v1
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - backend-network
+      - ats-network
+
+volumes:
+  postgres_data:
+
+networks:
+  backend-network:
+  ats-network:

@@ -1,0 +1,24 @@
+# Environment
+.env
+.env.local
+frontend/.env.local
+frontend/.local
+
+# Build output
+.next/
+frontend/.next/
+
+# IDE
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Go
+*.exe
+*.test
+*.out
+
+# Logs
+*.log
